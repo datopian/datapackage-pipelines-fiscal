@@ -4,7 +4,6 @@ import json
 from datapackage_pipelines.generators import GeneratorBase, steps
 
 from .flows.denormalized import denormalized_flow
-from .flows.dump_for_openspending import dump_for_openspending_flow
 from .flows.dumper import dumper_flow
 from .flows.dimension import dimension_flow
 from .flows.normalized import normalized_flow
@@ -19,10 +18,6 @@ FLOWS = [
     dimension_flow,
     normalized_flow,
     finalize_datapackage_flow,
-]
-
-OS_FLOWS = [
-    dump_for_openspending_flow
 ]
 
 
@@ -52,22 +47,25 @@ class Generator(GeneratorBase):
                 all_pipeline_ids.append(pipeline_id)
                 yield pipeline_id, pipeline_details
 
-        if not source.get('suppress-os', False):
-            for flow in OS_FLOWS:
-                for pipeline_steps, deps, suffix in flow(source, base):
-                    pipeline_id = base + '/' + flow.__name__
-                    if suffix:
-                        pipeline_id += '_' + suffix
-                    pipeline_details = {
-                        'pipeline': steps(*pipeline_steps),
-                        'dependencies': [
-                            dict(pipeline=base + '/' + dep)
-                            for dep in deps
-                        ]
-                    }
-                    all_pipeline_ids.append(pipeline_id)
-                    yield pipeline_id, pipeline_details
+         
+        pipeline_id = base + '/' + 'copy-babbage'
+        pipeline_details = {
+            'pipeline':
+                steps(('fiscal.dp_babbage',{})),
+            'dependencies': [{'pipeline': dep} for dep in all_pipeline_ids]
+        }
+        yield pipeline_id, pipeline_details
 
+
+        pipeline_id = base + '/' + 'copy-dataresources'
+        pipeline_details = {
+            'pipeline':
+                steps(('fiscal.cleanup-data',{})),
+            'dependencies': [{'pipeline': dep} for dep in all_pipeline_ids]
+        }
+        yield pipeline_id, pipeline_details
+
+        
         # clean up dependencies if keep-artifacts is not True.
         if not source.get('keep-artifacts', False):
             dirs_to_clean = ["denormalized", "normalized", "final"]
