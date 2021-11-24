@@ -2,7 +2,7 @@ import os
 import shutil
 import logging
 import json
-
+from os.path import dirname, basename
 from datapackage_pipelines.wrapper import process
 
 def copy_babbage(dp, parameters, *_):
@@ -13,8 +13,8 @@ def copy_babbage(dp, parameters, *_):
     dpkg_path  = f'{abs_path}/final/datapackage.json'
     dpkg = json.load(open(dpkg_path,"r"))['babbageModel']
 
-    org_path = os.path.dirname(os.getcwd())
-    model_name = os.path.basename(os.getcwd())
+    org_path = dirname(dirname(os.getcwd()))
+    model_name = basename(os.getcwd())
 
     model_path = f'{org_path}/models/{model_name}.json'
 
